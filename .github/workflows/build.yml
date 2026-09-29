@@ -13,23 +13,33 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Find and Unzip Project
+    - name: Unzip and Setup Project Structure
       run: |
         ZIP_FILE=$(ls *.zip | head -n 1)
         echo "Extracting $ZIP_FILE..."
-        unzip -o "$ZIP_FILE"
-        if [ -d "AIRecapApp" ]; then
-          cp -rn AIRecapApp/* . || true
+        unzip -o "$ZIP_FILE" -d extracted_app
+        
+        # Move inner project files to root directory if nested
+        INNER_DIR=$(find extracted_app -name "gradlew" -exec dirname {} \;)
+        if [ -n "$INNER_DIR" ]; then
+          echo "Found Gradle root at $INNER_DIR"
+          cp -rn $INNER_DIR/* . || true
         fi
 
-    - name: Set up JDK 21
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: '17'
         distribution: 'temurin'
 
-    - name: Make gradlew executable
-      run: chmod +x gradlew || true
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
 
     - name: Build Debug APK
-      run: ./gradlew assembleDebug --stacktrace
+      run: ./gradlew assembleDebug --no-daemon
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug
+        path: app/build/outputs/apk/debug/app-debug.apk
