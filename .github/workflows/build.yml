@@ -16,12 +16,13 @@ jobs:
     - name: Unzip Project Files
       run: |
         ZIP_FILE=$(ls *.zip | head -n 1)
+        echo "Extracting $ZIP_FILE..."
         unzip -o "$ZIP_FILE" -d temp_extracted
         
-        # Check and copy project root files
-        FOUND_DIR=$(find temp_extracted -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1 | xargs dirname)
+        # AIRecapApp သို့မဟုတ် gradlew ရှိသော ပင်မ Folder ကို ရှာ၍ ရွှေ့ခြင်း
+        FOUND_DIR=$(find temp_extracted -name "gradlew" | head -n 1 | xargs dirname)
         if [ -n "$FOUND_DIR" ]; then
-          echo "Copying from $FOUND_DIR"
+          echo "Copying project files from $FOUND_DIR"
           cp -r $FOUND_DIR/* .
         fi
 
@@ -31,12 +32,15 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-
     - name: Grant permissions to gradlew
       run: chmod +x gradlew
 
     - name: Build Debug APK
-      run: ./gradlew assembleDebug --stacktrace
-      
+      run: ./gradlew assembleDebug --no-daemon
+
+    - name: Upload APK Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug
+        path: app/build/outputs/apk/debug/app-debug.apk
+
